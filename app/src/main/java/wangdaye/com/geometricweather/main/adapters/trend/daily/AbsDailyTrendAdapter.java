@@ -67,7 +67,7 @@ public abstract class AbsDailyTrendAdapter<VH extends RecyclerView.ViewHolder> e
     }
 
     protected static void onItemClicked(GeoActivity activity, Location location, int adapterPosition) {
-        if (activity.isForeground()) {
+        if (activity.getForeground()) {
             IntentHelper.startDailyWeatherActivity(activity, location.getFormattedId(), adapterPosition);
         }
     }

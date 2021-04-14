@@ -71,7 +71,7 @@ public class MainActivity extends GeoActivity
             }
 
             mViewModel.updateLocationFromBackground(location);
-            if (isForeground()
+            if (getForeground()
                     && location.getFormattedId().equals(mViewModel.getCurrentFormattedId())) {
                 SnackbarHelper.showSnackbar(getString(R.string.feedback_updated_in_background));
             }
@@ -119,7 +119,7 @@ public class MainActivity extends GeoActivity
     }
 
     @Override
-    protected void onNewIntent(Intent intent) {
+    protected void onNewIntent(@NonNull Intent intent) {
         super.onNewIntent(intent);
         consumeIntentAction(getIntent());
     }
@@ -199,6 +199,7 @@ public class MainActivity extends GeoActivity
     }
 
     @Override
+    @NonNull
     public SnackbarContainer getSnackbarContainer() {
         if (mBinding.drawerLayout != null) {
             return super.getSnackbarContainer();
@@ -298,7 +299,9 @@ public class MainActivity extends GeoActivity
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
 
         PermissionsRequest request = mViewModel.getPermissionsRequestValue();
-        if (request.permissionList.size() == 0 || request.target == null) {
+        if (request == null
+                || request.permissionList.size() == 0
+                || request.target == null) {
             return;
         }
 
@@ -487,7 +490,9 @@ public class MainActivity extends GeoActivity
         mViewModel.getStatementManager().setLocationPermissionDeclared(this);
 
         PermissionsRequest request = mViewModel.getPermissionsRequestValue();
-        if (request.permissionList.size() != 0 && request.target != null) {
+        if (request != null
+                && request.permissionList.size() != 0
+                && request.target != null) {
             requestPermissions(request.permissionList.toArray(new String[0]), 0);
         }
     }

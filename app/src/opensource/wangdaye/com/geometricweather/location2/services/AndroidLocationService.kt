@@ -1,0 +1,183 @@
+package wangdaye.com.geometricweather.location2.services
+
+import android.Manifest
+import android.annotation.SuppressLint
+import android.content.Context
+import android.location.*
+import android.os.Build
+import android.os.Looper
+import android.provider.Settings
+import android.provider.Settings.SettingNotFoundException
+import android.text.TextUtils
+import androidx.annotation.WorkerThread
+import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.CancellableContinuation
+import wangdaye.com.geometricweather.common.utils.LanguageUtils
+import wangdaye.com.geometricweather.common.utils.suspendCoroutineWithTimeout
+import java.io.IOException
+import javax.inject.Inject
+import kotlin.coroutines.resume
+
+/**
+ * Android Location service.
+ */
+
+@SuppressLint("MissingPermission")
+open class AndroidLocationService @Inject constructor(
+        @ApplicationContext private val context: Context) : LocationService() {
+
+    companion object {
+        private const val TIMEOUT_MILLIS = (10 * 1000).toLong()
+
+        private fun locationEnabled(context: Context, manager: LocationManager): Boolean {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                if (!manager.isLocationEnabled) {
+                    return false
+                }
+            } else {
+                var locationMode = -1
+                try {
+                    locationMode = Settings.Secure.getInt(
+                            context.contentResolver, Settings.Secure.LOCATION_MODE)
+                } catch (e: SettingNotFoundException) {
+                    e.printStackTrace()
+                }
+                if (locationMode == Settings.Secure.LOCATION_MODE_OFF) {
+                    return false
+                }
+            }
+            return manager.isProviderEnabled(LocationManager.NETWORK_PROVIDER)
+                    || manager.isProviderEnabled(LocationManager.GPS_PROVIDER)
+        }
+    }
+
+    override suspend fun getLocation(context: Context) = suspendCoroutineWithTimeout<Result?>(TIMEOUT_MILLIS) {
+        val locationManager = context.getSystemService(Context.LOCATION_SERVICE) as? LocationManager
+        if (locationManager == null
+                || !locationEnabled(context, locationManager)
+                || !hasPermissions(context)) {
+            it.resume(null)
+        }
+
+        var networkListener: LocationListener? = null
+        var gpsListener: LocationListener? = null
+
+        networkListener = LocationListener { loc ->
+            stopLocationUpdates(locationManager, networkListener, gpsListener)
+            handleLocation(it, loc)
+        }
+        gpsListener = LocationListener { loc ->
+            stopLocationUpdates(locationManager, networkListener, gpsListener)
+            handleLocation(it, loc)
+        }
+        val lastKnownLocation = getLastKnownLocation(locationManager)
+
+        it.invokeOnCancellation { _ ->
+            stopLocationUpdates(locationManager, networkListener, gpsListener)
+            handleLocation(it, lastKnownLocation)
+        }
+
+        if (locationManager!!.isProviderEnabled(LocationManager.NETWORK_PROVIDER)) {
+            locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER,
+                    0, 0f, networkListener, Looper.getMainLooper())
+        }
+        if (locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
+            locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER,
+                    0, 0f, gpsListener, Looper.getMainLooper())
+        }
+    }
+
+    private fun getLastKnownLocation(locationManager: LocationManager?): Location? {
+        if (locationManager == null) {
+            return null
+        }
+        return locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER)
+                ?: locationManager.getLastKnownLocation(LocationManager.NETWORK_PROVIDER)
+                ?: locationManager.getLastKnownLocation(LocationManager.PASSIVE_PROVIDER)
+    }
+
+    private fun stopLocationUpdates(locationManager: LocationManager?,
+                                    networkListener: LocationListener?,
+                                    gpsListener: LocationListener?) {
+        if (locationManager != null) {
+            networkListener?.let {
+                locationManager.removeUpdates(it)
+            }
+            gpsListener?.let {
+                locationManager.removeUpdates(it)
+            }
+        }
+    }
+
+    override fun getPermissions(): Array<String> {
+        return arrayOf(
+                Manifest.permission.ACCESS_COARSE_LOCATION,
+                Manifest.permission.ACCESS_FINE_LOCATION
+        )
+    }
+
+    private fun handleLocation(poster: CancellableContinuation<Result?>, location: Location?) {
+        if (location == null) {
+            poster.resume(null)
+            return
+        }
+        poster.resume(buildResult(location))
+    }
+
+    @WorkerThread
+    private fun buildResult(location: Location): Result {
+        val result = Result(location.latitude.toFloat(), location.longitude.toFloat())
+        result.hasGeocodeInformation = false
+        if (!Geocoder.isPresent()) {
+            return result
+        }
+
+        var addressList: List<Address>? = null
+        try {
+            addressList = Geocoder(context, LanguageUtils.getCurrentLocale(context))
+                    .getFromLocation(
+                            location.latitude,
+                            location.longitude,
+                            1
+                    )
+        } catch (e: IOException) {
+            e.printStackTrace()
+        }
+        if (addressList == null || addressList.isEmpty()) {
+            return result
+        }
+
+        result.setGeocodeInformation(
+                addressList[0].countryName,
+                addressList[0].adminArea,
+                if (TextUtils.isEmpty(addressList[0].locality)) {
+                    addressList[0].subAdminArea
+                } else {
+                    addressList[0].locality
+                },
+                addressList[0].subLocality
+        )
+
+        val countryCode = addressList[0].countryCode
+        if (TextUtils.isEmpty(countryCode)) {
+            if (TextUtils.isEmpty(result.country)) {
+                result.inChina = false
+            } else {
+                result.inChina = result.country == "中国"
+                        || result.country == "香港"
+                        || result.country == "澳门"
+                        || result.country == "台湾"
+                        || result.country == "China"
+            }
+        } else {
+            result.inChina = countryCode == "CN"
+                    || countryCode == "cn"
+                    || countryCode == "HK"
+                    || countryCode == "hk"
+                    || countryCode == "TW"
+                    || countryCode == "tw"
+        }
+
+        return result
+    }
+}

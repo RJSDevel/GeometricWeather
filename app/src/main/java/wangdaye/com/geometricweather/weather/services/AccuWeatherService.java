@@ -1,6 +1,7 @@
 package wangdaye.com.geometricweather.weather.services;
 
 import android.content.Context;
+import android.content.SharedPreferences;
 import android.text.TextUtils;
 
 import androidx.annotation.NonNull;
@@ -18,7 +19,6 @@ import wangdaye.com.geometricweather.common.basic.models.Location;
 import wangdaye.com.geometricweather.common.rxjava.BaseObserver;
 import wangdaye.com.geometricweather.common.rxjava.ObserverContainer;
 import wangdaye.com.geometricweather.common.rxjava.SchedulerTransformer;
-import wangdaye.com.geometricweather.settings.ConfigStore;
 import wangdaye.com.geometricweather.settings.SettingsManager;
 import wangdaye.com.geometricweather.weather.apis.AccuWeatherApi;
 import wangdaye.com.geometricweather.weather.converters.AccuResultConverter;
@@ -39,7 +39,7 @@ public class AccuWeatherService extends WeatherService {
     private final AccuWeatherApi mApi;
     private final CompositeDisposable mCompositeDisposable;
 
-    private static final String CONFIG_NAME_LOCAL = "LOCAL_PREFERENCE";
+    private static final String PREFERENCE_LOCAL = "LOCAL_PREFERENCE";
     private static final String KEY_OLD_DISTRICT = "OLD_DISTRICT";
     private static final String KEY_OLD_CITY = "OLD_CITY";
     private static final String KEY_OLD_PROVINCE = "OLD_PROVINCE";
@@ -58,7 +58,7 @@ public class AccuWeatherService extends WeatherService {
         @Override
         public void requestLocationSuccess(String query, List<Location> locationList) {
             if (!TextUtils.isEmpty(locationList.get(0).getCityId())) {
-                ConfigStore.getInstance(mContext, CONFIG_NAME_LOCAL)
+                mContext.getSharedPreferences(PREFERENCE_LOCAL, Context.MODE_PRIVATE)
                         .edit()
                         .putString(KEY_OLD_KEY, locationList.get(0).getCityId())
                         .apply();
@@ -68,7 +68,7 @@ public class AccuWeatherService extends WeatherService {
 
         @Override
         public void requestLocationFailed(String query) {
-            ConfigStore.getInstance(mContext, CONFIG_NAME_LOCAL)
+            mContext.getSharedPreferences(PREFERENCE_LOCAL, Context.MODE_PRIVATE)
                     .edit()
                     .putString(KEY_OLD_DISTRICT, "")
                     .putString(KEY_OLD_CITY, "")
@@ -128,15 +128,15 @@ public class AccuWeatherService extends WeatherService {
                  accuDailyResult, accuHourlyResults, accuMinuteResult,
                  accuAlertResults,
                  accuAqiResult) -> AccuResultConverter.convert(
-                         context,
-                         location,
-                         accuRealtimeResults.get(0),
-                         accuDailyResult,
-                         accuHourlyResults,
-                         accuMinuteResult instanceof EmptyMinuteResult ? null : accuMinuteResult,
-                         accuAqiResult instanceof EmptyAqiResult ? null : accuAqiResult,
-                         accuAlertResults
-                 )
+                        context,
+                        location,
+                        accuRealtimeResults.get(0),
+                        accuDailyResult,
+                        accuHourlyResults,
+                        accuMinuteResult instanceof EmptyMinuteResult ? null : accuMinuteResult,
+                        accuAqiResult instanceof EmptyAqiResult ? null : accuAqiResult,
+                        accuAlertResults
+                )
         ).compose(SchedulerTransformer.create())
                 .subscribe(new ObserverContainer<>(mCompositeDisposable, new BaseObserver<WeatherResultWrapper>() {
                     @Override
@@ -186,11 +186,14 @@ public class AccuWeatherService extends WeatherService {
     @Override
     public void requestLocation(Context context, Location location,
                                 @NonNull RequestLocationCallback callback) {
-        ConfigStore config = ConfigStore.getInstance(context, CONFIG_NAME_LOCAL);
-        String oldDistrict = config.getString(KEY_OLD_DISTRICT, "");
-        String oldCity = config.getString(KEY_OLD_CITY, "");
-        String oldProvince = config.getString(KEY_OLD_PROVINCE, "");
-        String oldKey = config.getString(KEY_OLD_KEY, "");
+        SharedPreferences sharedPreferences = context.getSharedPreferences(
+                PREFERENCE_LOCAL,
+                Context.MODE_PRIVATE
+        );
+        String oldDistrict = sharedPreferences.getString(KEY_OLD_DISTRICT, "");
+        String oldCity = sharedPreferences.getString(KEY_OLD_CITY, "");
+        String oldProvince = sharedPreferences.getString(KEY_OLD_PROVINCE, "");
+        String oldKey = sharedPreferences.getString(KEY_OLD_KEY, "");
 
         if (location.hasGeocodeInformation()
                 && queryEqualsIgnoreEmpty(location.getDistrict(), oldDistrict)
@@ -206,7 +209,7 @@ public class AccuWeatherService extends WeatherService {
             return;
         }
 
-        config.edit()
+        sharedPreferences.edit()
                 .putString(KEY_OLD_DISTRICT, location.getDistrict())
                 .putString(KEY_OLD_CITY, location.getCity())
                 .putString(KEY_OLD_PROVINCE, location.getProvince())

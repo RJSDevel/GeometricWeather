@@ -42,10 +42,10 @@ import wangdaye.com.geometricweather.common.utils.FileUtils;
 public class DatabaseHelper {
 
     private static volatile DatabaseHelper sInstance;
-    public static DatabaseHelper getInstance(Context c) {
+    public static DatabaseHelper getInstance(Context context) {
         if (sInstance == null) {
             synchronized (DatabaseHelper.class) {
-                sInstance = new DatabaseHelper(c);
+                sInstance = new DatabaseHelper(context);
             }
         }
         return sInstance;

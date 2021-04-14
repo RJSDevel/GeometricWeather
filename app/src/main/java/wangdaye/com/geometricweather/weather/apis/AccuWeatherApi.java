@@ -27,6 +27,8 @@ public interface AccuWeatherApi {
                                                        @Query("q") String q,
                                                        @Query("language") String language);
 
+    // rx java.
+
     @GET("locations/v1/cities/translate.json")
     Observable<List<AccuLocationResult>> getWeatherLocation(@Query("alias") String alias,
                                                             @Query("apikey") String apikey,
@@ -73,4 +75,47 @@ public interface AccuWeatherApi {
                                                @Query("apikey") String apikey,
                                                @Query("language") String language,
                                                @Query("details") boolean details);
+
+    // kt coroutines.
+
+    @GET("locations/v1/cities/geoposition/search.json")
+    Call<AccuLocationResult> callWeatherLocationByGeoPosition(@Query("alias") String alias,
+                                                              @Query("apikey") String apikey,
+                                                              @Query("q") String q,
+                                                              @Query("language") String language);
+
+    @GET("currentconditions/v1/{city_key}.json")
+    Call<List<AccuCurrentResult>> callCurrent(@Path("city_key") String city_key,
+                                              @Query("apikey") String apikey,
+                                              @Query("language") String language,
+                                              @Query("details") boolean details);
+
+    @GET("forecasts/v1/daily/15day/{city_key}.json")
+    Call<AccuDailyResult> callDaily(@Path("city_key") String city_key,
+                                    @Query("apikey") String apikey,
+                                    @Query("language") String language,
+                                    @Query("metric") boolean metric,
+                                    @Query("details") boolean details);
+
+    @GET("forecasts/v1/hourly/24hour/{city_key}.json")
+    Call<List<AccuHourlyResult>> callHourly(@Path("city_key") String city_key,
+                                            @Query("apikey") String apikey,
+                                            @Query("language") String language,
+                                            @Query("metric") boolean metric);
+
+    @GET("forecasts/v1/minute/1minute.json")
+    Call<AccuMinuteResult> callMinutely(@Query("apikey") String apikey,
+                                        @Query("language") String language,
+                                        @Query("details") boolean details,
+                                        @Query("q") String q);
+
+    @GET("airquality/v1/observations/{city_key}.json")
+    Call<AccuAqiResult> callAirQuality(@Path("city_key") String city_key,
+                                       @Query("apikey") String apikey);
+
+    @GET("alerts/v1/{city_key}.json")
+    Call<List<AccuAlertResult>> callAlert(@Path("city_key") String city_key,
+                                          @Query("apikey") String apikey,
+                                          @Query("language") String language,
+                                          @Query("details") boolean details);
 }

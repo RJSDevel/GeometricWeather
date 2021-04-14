@@ -4,14 +4,13 @@ import android.content.Context
 import android.content.SharedPreferences
 import androidx.preference.PreferenceManager
 
-class ConfigStore private constructor(sp: SharedPreferences) {
+
+class ConfigStore private constructor(private val sp: SharedPreferences) {
 
     companion object {
 
         @JvmStatic
-        fun getInstance(context: Context) = getInstance(context, null)
-
-        @JvmStatic
+        @JvmOverloads
         fun getInstance(context: Context, name: String? = null): ConfigStore {
             return ConfigStore(if (name == null) {
                 PreferenceManager.getDefaultSharedPreferences(context)
@@ -21,47 +20,45 @@ class ConfigStore private constructor(sp: SharedPreferences) {
         }
     }
 
-    private val preferences = sp
-
     fun preload() {
         // do nothing.
     }
 
     fun getString(key: String, defValue: String?): String? {
-        return preferences.getString(key, defValue)
+        return sp.getString(key, defValue)
     }
 
     fun getStringSet(key: String, defValues: Set<String?>?): Set<String>? {
-        return preferences.getStringSet(key, defValues)
+        return sp.getStringSet(key, defValues)
     }
 
     fun getInt(key: String, defValue: Int): Int {
-        return preferences.getInt(key, defValue)
+        return sp.getInt(key, defValue)
     }
 
     fun getLong(key: String, defValue: Long): Long {
-        return preferences.getLong(key, defValue)
+        return sp.getLong(key, defValue)
     }
 
     fun getFloat(key: String, defValue: Float): Float {
-        return preferences.getFloat(key, defValue)
+        return sp.getFloat(key, defValue)
     }
 
     fun getBoolean(key: String, defValue: Boolean): Boolean {
-        return preferences.getBoolean(key, defValue)
+        return sp.getBoolean(key, defValue)
     }
 
     fun contains(key: String): Boolean {
-        return preferences.contains(key)
+        return sp.contains(key)
     }
 
     fun edit(): Editor {
         return Editor(this)
     }
 
-    class Editor internal constructor(private val host: ConfigStore) {
+    class Editor internal constructor(host: ConfigStore) {
 
-        private val editor = host.preferences.edit()
+        private val editor = host.sp.edit()
 
         fun putString(key: String, value: String?): Editor {
             editor.putString(key, value)

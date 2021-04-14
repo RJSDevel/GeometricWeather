@@ -31,9 +31,6 @@ import java.util.TimeZone;
 
 import wangdaye.com.geometricweather.R;
 
-/**
- * Display utils.
- * */
 
 public class DisplayUtils {
 

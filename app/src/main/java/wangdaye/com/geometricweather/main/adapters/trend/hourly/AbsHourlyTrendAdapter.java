@@ -58,7 +58,7 @@ public abstract class AbsHourlyTrendAdapter<VH extends RecyclerView.ViewHolder> 
                                         Location location,
                                         int adapterPosition,
                                         MainThemeManager themeManager) {
-        if (activity.isForeground()) {
+        if (activity.getForeground()) {
             HourlyWeatherDialog.getInstance(
                     location.getWeather(),
                     adapterPosition,
