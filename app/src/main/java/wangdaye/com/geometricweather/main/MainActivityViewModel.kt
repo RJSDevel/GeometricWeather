@@ -93,7 +93,7 @@ class MainActivityViewModel @ViewModelInject constructor(
 
         viewModelScope.launch {
 
-            fun resp(locationList: List<Location>, done: Boolean) {
+            fun response(locationList: List<Location>, done: Boolean) {
                 val totalList = ArrayList(locationList)
                 val validList = Location.excludeInvalidResidentLocation(getApplication(), totalList)
                 val validIndex = indexLocation(validList, formattedId)
@@ -111,8 +111,8 @@ class MainActivityViewModel @ViewModelInject constructor(
                         indicator, null, SelectableLocationListResource.DataSetChanged())
             }
 
-            resp(repository.getLocationList(getApplication(), oldList), false)
-            resp(repository.getWeatherCaches(getApplication(), getTotalLocationList()!!), true)
+            response(repository.getLocationList(getApplication(), oldList), false)
+            response(repository.getWeatherCaches(getApplication(), getTotalLocationList()!!), true)
         }
     }
 

@@ -3,8 +3,12 @@ package wangdaye.com.geometricweather.location2.services
 import android.Manifest
 import android.annotation.SuppressLint
 import android.content.Context
-import android.location.*
+import android.location.Address
+import android.location.Geocoder
+import android.location.Location
+import android.location.LocationManager
 import android.os.Build
+import android.os.Bundle
 import android.os.Looper
 import android.provider.Settings
 import android.provider.Settings.SettingNotFoundException
@@ -19,6 +23,7 @@ import com.google.android.gms.location.LocationServices
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CancellableContinuation
 import wangdaye.com.geometricweather.common.utils.LanguageUtils
+import wangdaye.com.geometricweather.common.utils.helpers.LogHelper
 import wangdaye.com.geometricweather.common.utils.suspendCoroutineWithTimeout
 import java.io.IOException
 import javax.inject.Inject
@@ -62,6 +67,21 @@ open class AndroidLocationService @Inject constructor(
         }
     }
 
+    private abstract class LocationListener : android.location.LocationListener {
+
+        override fun onStatusChanged(provider: String, status: Int, extras: Bundle) {
+            // do nothing.
+        }
+
+        override fun onProviderEnabled(provider: String) {
+            // do nothing.
+        }
+
+        override fun onProviderDisabled(provider: String) {
+            // do nothing.
+        }
+    }
+
     override suspend fun getLocation(context: Context) = suspendCoroutineWithTimeout<Result?>(TIMEOUT_MILLIS) {
         val locationManager = context.getSystemService(Context.LOCATION_SERVICE) as? LocationManager
 
@@ -74,20 +94,28 @@ open class AndroidLocationService @Inject constructor(
         if (locationManager == null
                 || !locationEnabled(context, locationManager)
                 || !hasPermissions(context)) {
-            it.resume(null)
+            if (it.isActive) {
+                it.resume(null)
+            }
         }
 
         var networkListener: LocationListener? = null
         var gpsListener: LocationListener? = null
         var gmsListener: LocationCallback? = null
 
-        networkListener = LocationListener { loc ->
-            stopLocationUpdates(locationManager, networkListener, gpsListener, gmsClient, gmsListener)
-            handleLocation(it, loc)
+        networkListener = object : LocationListener() {
+            override fun onLocationChanged(location: Location) {
+                LogHelper.log("loc from network. $location")
+                stopLocationUpdates(locationManager, networkListener, gpsListener, gmsClient, gmsListener)
+                handleLocation(it, location)
+            }
         }
-        gpsListener = LocationListener { loc ->
-            stopLocationUpdates(locationManager, networkListener, gpsListener, gmsClient, gmsListener)
-            handleLocation(it, loc)
+        gpsListener = object : LocationListener() {
+            override fun onLocationChanged(location: Location) {
+                LogHelper.log("loc from gps. $location")
+                stopLocationUpdates(locationManager, networkListener, gpsListener, gmsClient, gmsListener)
+                handleLocation(it, location)
+            }
         }
         gmsListener = object: LocationCallback() {
             override fun onLocationResult(locationResult: LocationResult) {
@@ -100,6 +128,7 @@ open class AndroidLocationService @Inject constructor(
         var lastKnownLocation = getLastKnownLocation(locationManager)
 
         it.invokeOnCancellation { _ ->
+            LogHelper.log("cancel.")
             stopLocationUpdates(locationManager, networkListener, gpsListener, gmsClient, gmsListener)
             handleLocation(it, lastKnownLocation)
         }
@@ -113,8 +142,7 @@ open class AndroidLocationService @Inject constructor(
                     0, 0f, gpsListener, Looper.getMainLooper())
         }
         if (lastKnownLocation == null && gmsClient != null) {
-            gmsClient.lastLocation.addOnSuccessListener {
-                location: Location? -> lastKnownLocation = location
+            gmsClient.lastLocation.addOnSuccessListener { location: Location? -> lastKnownLocation = location
             }
         }
     }
@@ -153,12 +181,17 @@ open class AndroidLocationService @Inject constructor(
         )
     }
 
-    private fun handleLocation(poster: CancellableContinuation<Result?>, location: Location?) {
+    private fun handleLocation(continuation: CancellableContinuation<Result?>, location: Location?) {
         if (location == null) {
-            poster.resume(null)
+            LogHelper.log("location == null.")
+            if (continuation.isActive) {
+                continuation.resume(null)
+            }
             return
         }
-        poster.resume(buildResult(location))
+        if (continuation.isActive) {
+            continuation.resume(buildResult(location))
+        }
     }
 
     @WorkerThread
@@ -216,6 +249,7 @@ open class AndroidLocationService @Inject constructor(
                     || countryCode == "tw"
         }
 
+        LogHelper.log("return $result")
         return result
     }
 }

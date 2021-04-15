@@ -1,10 +1,7 @@
 package wangdaye.com.geometricweather.main
 
 import android.content.Context
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.ObsoleteCoroutinesApi
-import kotlinx.coroutines.newSingleThreadContext
-import kotlinx.coroutines.withContext
+import kotlinx.coroutines.*
 import wangdaye.com.geometricweather.common.basic.models.Location
 import wangdaye.com.geometricweather.common.basic.models.Response
 import wangdaye.com.geometricweather.common.basic.models.weather.Weather
@@ -16,14 +13,24 @@ import javax.inject.Inject
 import kotlin.collections.ArrayList
 
 @ObsoleteCoroutinesApi
-class MainActivityRepository @Inject constructor(private val locationHelper: LocationHelper,
-                                                 private val weatherHelper: WeatherHelper) {
+class MainActivityRepository(private val locationHelper: LocationHelper,
+                             private val weatherHelper: WeatherHelper,
+                             private val ioDispatcher: CoroutineDispatcher,
+                             private val exclusiveDispatcher: ExecutorCoroutineDispatcher) {
 
-    private val singleThreadDispatcher = newSingleThreadContext(
-            "com.wangdaye.geometricweather.main.repo")
+    @Inject constructor(
+            locationHelper: LocationHelper,
+            weatherHelper: WeatherHelper
+    ): this(
+            locationHelper,
+            weatherHelper,
+            ioDispatcher = Dispatchers.IO,
+            exclusiveDispatcher = newSingleThreadContext(
+                    "com.wangdaye.geometricweather.main.repo")
+    )
 
     suspend fun getLocationList(context: Context, oldList: List<Location>): List<Location> {
-        return withContext(singleThreadDispatcher) {
+        return withContext(exclusiveDispatcher) {
             val list = DatabaseHelper.getInstance(context).readLocationList()
             for (oldOne in oldList) {
                 for (newOne in list) {
@@ -38,31 +45,31 @@ class MainActivityRepository @Inject constructor(private val locationHelper: Loc
     }
 
     suspend fun getWeatherCaches(context: Context, list: List<Location>): List<Location> {
-        return withContext(singleThreadDispatcher) {
+        return withContext(exclusiveDispatcher) {
             for (location in list) {
                 location.weather = DatabaseHelper.getInstance(context).readWeather(location)
             }
-            return@withContext list;
+            return@withContext list
         }
     }
 
     suspend fun writeLocation(context: Context, location: Location) {
-        withContext(singleThreadDispatcher) {
+        withContext(exclusiveDispatcher) {
             DatabaseHelper.getInstance(context).writeLocation(location)
-            if (location.weather != null) {
-                DatabaseHelper.getInstance(context).writeWeather(location, location.weather!!)
+            location.weather?.let {
+                DatabaseHelper.getInstance(context).writeWeather(location, it)
             }
         }
     }
 
     suspend fun writeLocationList(context: Context, locationList: List<Location>) {
-        withContext(singleThreadDispatcher) {
+        withContext(exclusiveDispatcher) {
             DatabaseHelper.getInstance(context).writeLocationList(locationList)
         }
     }
 
     suspend fun writeLocationList(context: Context, locationList: List<Location>, newIndex: Int) {
-        withContext(singleThreadDispatcher) {
+        withContext(exclusiveDispatcher) {
             DatabaseHelper.getInstance(context).writeLocationList(locationList)
             locationList[newIndex].weather?.let {
                 DatabaseHelper.getInstance(context).writeWeather(locationList[newIndex], it)
@@ -71,20 +78,20 @@ class MainActivityRepository @Inject constructor(private val locationHelper: Loc
     }
 
     suspend fun deleteLocation(context: Context, location: Location) {
-        withContext(singleThreadDispatcher) {
+        withContext(exclusiveDispatcher) {
             DatabaseHelper.getInstance(context).deleteLocation(location)
             DatabaseHelper.getInstance(context).deleteWeather(location)
         }
     }
 
     suspend fun getLocation(context: Context, location: Location): Response<Location?> {
-        return withContext(Dispatchers.IO) {
+        return withContext(ioDispatcher) {
             locationHelper.getLocation(context, location, false)
         }
     }
 
     suspend fun getWeather(context: Context, location: Location): Response<Weather?> {
-        return withContext(Dispatchers.IO) {
+        return withContext(ioDispatcher) {
             weatherHelper.getWeather(context, location)
         }
     }
@@ -98,6 +105,6 @@ class MainActivityRepository @Inject constructor(private val locationHelper: Loc
     }
 
     fun destroy() {
-        singleThreadDispatcher.close()
+        exclusiveDispatcher.close()
     }
 }

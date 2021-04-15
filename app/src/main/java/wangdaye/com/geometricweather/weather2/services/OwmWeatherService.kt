@@ -3,9 +3,8 @@ package wangdaye.com.geometricweather.weather2.services
 import android.content.Context
 import android.text.TextUtils
 import dagger.hilt.android.qualifiers.ApplicationContext
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
-import kotlinx.coroutines.withContext
+import kotlinx.coroutines.coroutineScope
 import wangdaye.com.geometricweather.BuildConfig
 import wangdaye.com.geometricweather.common.basic.models.Location
 import wangdaye.com.geometricweather.common.basic.models.weather.Weather
@@ -32,119 +31,112 @@ class OwmWeatherService @Inject constructor(@ApplicationContext context: Context
 
     private val config = ConfigStore.getInstance(context, CONFIG_NAME_LOCAL)
 
-    override suspend fun getWeather(context: Context, location: Location): Weather? {
-        return withContext(Dispatchers.IO) {
-            val languageCode = SettingsManager.getInstance(context).getLanguage().code
-            val oneCall = async {
-                api.getOneCall(
-                        BuildConfig.OWM_KEY,
-                        location.latitude.toDouble(),
-                        location.longitude.toDouble(),
-                        "metric",
-                        languageCode
-                )
-            }
-            val airPollutionCurrent = async {
-                try {
-                    api.getAirPollutionCurrent(
-                            BuildConfig.OWM_KEY,
-                            location.latitude.toDouble(),
-                            location.longitude.toDouble()
-                    )
-                } catch (e: Exception) {
-                    e.printStackTrace()
-                    null
-                }
-            }
-            val airPollutionForecast = async {
-                try {
-                    api.getAirPollutionForecast(
-                            BuildConfig.OWM_KEY,
-                            location.latitude.toDouble(),
-                            location.longitude.toDouble()
-                    )
-                } catch (e: Exception) {
-                    e.printStackTrace()
-                    null
-                }
-            }
-
-            return@withContext OwmResultConverter.convert(
-                    context,
-                    location,
-                    oneCall.await(),
-                    airPollutionCurrent.await(),
-                    airPollutionForecast.await()
-            )
-        }.result
-    }
-
-    override suspend fun getLocation(context: Context, query: String): List<Location> {
-        return withContext(Dispatchers.IO) {
-            val resultList = api.callWeatherLocation(BuildConfig.OWM_KEY, query)
-
-            val zipCode = if (query.matches(Regex("[a-zA-Z0-9]*"))) {
-                query
-            } else {
-                null
-            }
-
-            val locationList: MutableList<Location> = ArrayList()
-            for (r in resultList) {
-                locationList.add(OwmResultConverter.convert(null, r, zipCode))
-            }
-            return@withContext locationList
-        }
-    }
-
-    override suspend fun getLocation(context: Context, location: Location): List<Location> {
-        return withContext(Dispatchers.IO) {
-
-            val oldDistrict = config.getString(KEY_OLD_DISTRICT, "")
-            val oldCity = config.getString(KEY_OLD_CITY, "")
-            val oldProvince = config.getString(KEY_OLD_PROVINCE, "")
-            val oldKey = config.getString(KEY_OLD_KEY, "")
-
-            if (location.hasGeocodeInformation()
-                    && queryEqualsIgnoreEmpty(location.district, oldDistrict)
-                    && queryEquals(location.city, oldCity)
-                    && queryEquals(location.province, oldProvince)
-                    && queryEquals(location.cityId, oldKey)) {
-
-                return@withContext ArrayList<Location>()
-            }
-
-            config.edit()
-                    .putString(KEY_OLD_DISTRICT, location.district)
-                    .putString(KEY_OLD_CITY, location.city)
-                    .putString(KEY_OLD_PROVINCE, location.province)
-                    .apply()
-
-
-            val result = api.getWeatherLocationByGeoPosition(
+    override suspend fun getWeather(context: Context, location: Location): Weather? = coroutineScope {
+        val languageCode = SettingsManager.getInstance(context).getLanguage().code
+        val oneCall = async {
+            api.getOneCall(
                     BuildConfig.OWM_KEY,
                     location.latitude.toDouble(),
-                    location.longitude.toDouble()
+                    location.longitude.toDouble(),
+                    "metric",
+                    languageCode
             )
-
-            val locationList = ArrayList<Location>()
-            locationList.add(OwmResultConverter.convert(location, result[0], null))
-
-            if (locationList.isEmpty()) {
-                config.edit()
-                        .putString(KEY_OLD_DISTRICT, "")
-                        .putString(KEY_OLD_CITY, "")
-                        .putString(KEY_OLD_PROVINCE, "")
-                        .putString(KEY_OLD_KEY, "")
-                        .apply()
-            } else if (!TextUtils.isEmpty(locationList[0].cityId)) {
-                config.edit()
-                        .putString(KEY_OLD_KEY, locationList[0].cityId)
-                        .apply()
-            }
-
-            return@withContext locationList
         }
+        val airPollutionCurrent = async {
+            try {
+                api.getAirPollutionCurrent(
+                        BuildConfig.OWM_KEY,
+                        location.latitude.toDouble(),
+                        location.longitude.toDouble()
+                )
+            } catch (e: Exception) {
+                e.printStackTrace()
+                null
+            }
+        }
+        val airPollutionForecast = async {
+            try {
+                api.getAirPollutionForecast(
+                        BuildConfig.OWM_KEY,
+                        location.latitude.toDouble(),
+                        location.longitude.toDouble()
+                )
+            } catch (e: Exception) {
+                e.printStackTrace()
+                null
+            }
+        }
+
+        return@coroutineScope OwmResultConverter.convert(
+                context,
+                location,
+                oneCall.await(),
+                airPollutionCurrent.await(),
+                airPollutionForecast.await()
+        ).result
+    }
+
+    override suspend fun getLocation(context: Context, query: String): List<Location> = coroutineScope {
+        val resultList = api.callWeatherLocation(BuildConfig.OWM_KEY, query)
+
+        val zipCode = if (query.matches(Regex("[a-zA-Z0-9]*"))) {
+            query
+        } else {
+            null
+        }
+
+        val locationList: MutableList<Location> = ArrayList()
+        for (r in resultList) {
+            locationList.add(OwmResultConverter.convert(null, r, zipCode))
+        }
+        return@coroutineScope locationList
+    }
+
+    override suspend fun getLocation(context: Context, location: Location): List<Location> = coroutineScope {
+        val oldDistrict = config.getString(KEY_OLD_DISTRICT, "")
+        val oldCity = config.getString(KEY_OLD_CITY, "")
+        val oldProvince = config.getString(KEY_OLD_PROVINCE, "")
+        val oldKey = config.getString(KEY_OLD_KEY, "")
+
+        if (location.hasGeocodeInformation()
+                && queryEqualsIgnoreEmpty(location.district, oldDistrict)
+                && queryEquals(location.city, oldCity)
+                && queryEquals(location.province, oldProvince)
+                && queryEquals(location.cityId, oldKey)) {
+
+            return@coroutineScope ArrayList<Location>()
+        }
+
+        config.edit()
+                .putString(KEY_OLD_DISTRICT, location.district)
+                .putString(KEY_OLD_CITY, location.city)
+                .putString(KEY_OLD_PROVINCE, location.province)
+                .apply()
+
+
+        val result = api.getWeatherLocationByGeoPosition(
+                BuildConfig.OWM_KEY,
+                location.latitude.toDouble(),
+                location.longitude.toDouble()
+        )
+
+        val locationList = ArrayList<Location>()
+        locationList.add(OwmResultConverter.convert(location, result[0], null))
+
+        if (locationList.isEmpty()) {
+            config.edit()
+                    .putString(KEY_OLD_DISTRICT, "")
+                    .putString(KEY_OLD_CITY, "")
+                    .putString(KEY_OLD_PROVINCE, "")
+                    .putString(KEY_OLD_KEY, "")
+                    .apply()
+        } else if (!TextUtils.isEmpty(locationList[0].cityId)) {
+            config.edit()
+                    .putString(KEY_OLD_KEY, locationList[0].cityId)
+                    .apply()
+        }
+
+        return@coroutineScope locationList
     }
 
     private fun queryEquals(a: String?, b: String?): Boolean {
