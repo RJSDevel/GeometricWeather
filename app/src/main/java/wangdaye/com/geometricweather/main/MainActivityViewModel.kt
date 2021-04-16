@@ -13,7 +13,6 @@ import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.*
 import wangdaye.com.geometricweather.common.basic.GeoViewModel
 import wangdaye.com.geometricweather.common.basic.models.Location
-import wangdaye.com.geometricweather.common.basic.models.Response
 import wangdaye.com.geometricweather.main.models.Indicator
 import wangdaye.com.geometricweather.main.models.LocationResource
 import wangdaye.com.geometricweather.main.models.PermissionsRequest
@@ -25,7 +24,6 @@ import wangdaye.com.geometricweather.main.utils.StatementManager
 import java.util.*
 import kotlin.collections.ArrayList
 
-@ObsoleteCoroutinesApi
 class MainActivityViewModel @ViewModelInject constructor(
         application: Application,
         @Assisted private val savedStateHandle: SavedStateHandle,
@@ -218,16 +216,15 @@ class MainActivityViewModel @ViewModelInject constructor(
                         val response = repository.getLocation(getApplication(), it.data)
                         callback(
                                 response.result ?: it.data,
-                                response.status == Response.Status.FAILED,
-                                response.status == Response.Status.SUCCEED,
+                                locateFailed = response.isFailed(),
+                                succeed = response.isSucceed(),
                                 false
                         )
                     }
 
                     val response = repository.getWeather(getApplication(), it.data)
                     it.data.weather = response.result
-                    callback(it.data, false,
-                            response.status == Response.Status.SUCCEED, true)
+                    callback(it.data, false, response.isSucceed(), true)
                     return@launch
                 }
 

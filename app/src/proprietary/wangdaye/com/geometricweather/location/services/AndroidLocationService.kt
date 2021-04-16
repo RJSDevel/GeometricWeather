@@ -1,9 +1,12 @@
-package wangdaye.com.geometricweather.location2.services
+package wangdaye.com.geometricweather.location.services
 
 import android.Manifest
 import android.annotation.SuppressLint
 import android.content.Context
-import android.location.*
+import android.location.Address
+import android.location.Geocoder
+import android.location.Location
+import android.location.LocationManager
 import android.os.Build
 import android.os.Bundle
 import android.os.Handler
@@ -12,6 +15,10 @@ import android.provider.Settings
 import android.provider.Settings.SettingNotFoundException
 import android.text.TextUtils
 import androidx.annotation.WorkerThread
+import com.google.android.gms.common.ConnectionResult
+import com.google.android.gms.common.GoogleApiAvailability
+import com.google.android.gms.location.*
+import com.google.android.gms.tasks.CancellationTokenSource
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CancellableContinuation
 import wangdaye.com.geometricweather.common.utils.LanguageUtils
@@ -24,13 +31,16 @@ import javax.inject.Inject
 /**
  * Android Location service.
  */
-
 @SuppressLint("MissingPermission")
 open class AndroidLocationService @Inject constructor(
         @ApplicationContext private val context: Context) : LocationService() {
 
     companion object {
+
         private const val TIMEOUT_MILLIS = (15 * 1000).toLong()
+
+        private fun gmsEnabled(context: Context) = GoogleApiAvailability.getInstance()
+                .isGooglePlayServicesAvailable(context) == ConnectionResult.SUCCESS
 
         private fun locationEnabled(context: Context, manager: LocationManager): Boolean {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
@@ -55,6 +65,7 @@ open class AndroidLocationService @Inject constructor(
     }
 
     private var manager: LocationManager? = null
+    private var gmsCancellationSource: CancellationTokenSource? = null
     private var networkListener: LocationListener? = null
     private var gpsListener: LocationListener? = null
     private var geocoderController: AsyncHelper.Controller? = null
@@ -89,6 +100,12 @@ open class AndroidLocationService @Inject constructor(
             val manager = context.getSystemService(Context.LOCATION_SERVICE) as? LocationManager
             this.manager = manager
 
+            val gmsClient = if (gmsEnabled(context)) {
+                LocationServices.getFusedLocationProviderClient(context)
+            } else {
+                null
+            }
+
             if (manager == null
                     || !locationEnabled(context, manager)
                     || !hasPermissions(context)) {
@@ -98,13 +115,13 @@ open class AndroidLocationService @Inject constructor(
 
             networkListener = object : LocationListener() {
                 override fun onLocationChanged(location: Location) {
-                    stopLocationUpdates(null)
+                    stopLocationUpdates()
                     handleLocation(location)
                 }
             }
             gpsListener = object : LocationListener() {
                 override fun onLocationChanged(location: Location) {
-                    stopLocationUpdates(null)
+                    stopLocationUpdates()
                     handleLocation(location)
                 }
             }
@@ -131,25 +148,42 @@ open class AndroidLocationService @Inject constructor(
                             0, 0f, it, Looper.getMainLooper())
                 }
             }
+
+            val source = CancellationTokenSource()
+            gmsCancellationSource = source
+
+            gmsClient?.getCurrentLocation(
+                    LocationRequest.PRIORITY_HIGH_ACCURACY, source.token
+            )?.addOnSuccessListener {
+                stopLocationUpdates()
+                handleLocation(it)
+            }
         }
     }
 
-    private fun stopLocationUpdates(continuation: CancellableContinuation<Result?>?) {
+    private fun stopLocationUpdates(continuation: CancellableContinuation<Result?>? = null) {
         runOnMainThread {
 
             continuation?.let {
                 continuationSet.remove(it)
                 if (continuationSet.isNotEmpty()) {
+                    // there are still some location progress is working. don't stop services.
                     it.resumeSafely(null)
                     return@runOnMainThread
                 }
             }
+
+            // no location progress anymore. stop services at first, then resume the coroutine.
 
             networkListener?.let {
                 manager?.removeUpdates(it)
             }
             gpsListener?.let {
                 manager?.removeUpdates(it)
+            }
+            gmsCancellationSource?.let {
+                it.cancel()
+                gmsCancellationSource = null
             }
             manager = null
 

@@ -17,4 +17,8 @@ class Response<T>(val result: T?,
     enum class Status {
         SUCCEED, FAILED
     }
+
+    fun isSucceed() = status == Status.SUCCEED
+
+    fun isFailed() = status == Status.FAILED
 }

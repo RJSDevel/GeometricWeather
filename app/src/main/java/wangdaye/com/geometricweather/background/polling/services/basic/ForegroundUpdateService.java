@@ -23,6 +23,8 @@ import wangdaye.com.geometricweather.db.DatabaseHelper;
 
 public abstract class ForegroundUpdateService extends UpdateService {
 
+    private int mFinishedCount;
+
     @Override
     public void onCreate() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -37,11 +39,10 @@ public abstract class ForegroundUpdateService extends UpdateService {
             NotificationManagerCompat.from(this).createNotificationChannel(channel);
         }
 
-        // version O.
+        mFinishedCount = 0;
         startForeground(
                 getForegroundNotificationId(),
                 getForegroundNotification(
-                        1,
                         DatabaseHelper.getInstance(this).countLocation()
                 ).build()
         );
@@ -64,11 +65,11 @@ public abstract class ForegroundUpdateService extends UpdateService {
         super.stopService(updateFailed);
     }
 
-    public NotificationCompat.Builder getForegroundNotification(int index, int total) {
+    public NotificationCompat.Builder getForegroundNotification(int total) {
         return new NotificationCompat.Builder(this, GeometricWeather.NOTIFICATION_CHANNEL_ID_BACKGROUND)
                 .setSmallIcon(R.drawable.ic_running_in_background)
                 .setContentTitle(getString(R.string.geometric_weather))
-                .setContentText(getString(R.string.feedback_updating_weather_data) + " (" + index + "/" + total + ")")
+                .setContentText(getString(R.string.feedback_updating_weather_data) + " (" + (mFinishedCount + 1) + "/" + total + ")")
                 .setBadgeIconType(NotificationCompat.BADGE_ICON_NONE)
                 .setPriority(NotificationCompat.PRIORITY_MIN)
                 .setProgress(0, 0, true)
@@ -80,13 +81,15 @@ public abstract class ForegroundUpdateService extends UpdateService {
     public abstract int getForegroundNotificationId();
 
     @Override
-    public void onUpdateCompleted(@NonNull Location location, @Nullable Weather old,
-                                  boolean succeed, int index, int total) {
-        super.onUpdateCompleted(location, old, succeed, index, total);
-        if (index + 1 != total) {
+    public void responseSingleRequest(@NonNull Location location, @Nullable Weather old,
+                                      boolean succeed, int index, int total) {
+        super.responseSingleRequest(location, old, succeed, index, total);
+
+        mFinishedCount ++;
+        if (mFinishedCount != total) {
             NotificationManagerCompat.from(this).notify(
                     getForegroundNotificationId(),
-                    getForegroundNotification(index + 2, total).build()
+                    getForegroundNotification(total).build()
             );
         }
     }

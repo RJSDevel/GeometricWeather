@@ -6,13 +6,13 @@ import wangdaye.com.geometricweather.common.basic.models.Location
 import wangdaye.com.geometricweather.common.basic.models.Response
 import wangdaye.com.geometricweather.common.basic.models.weather.Weather
 import wangdaye.com.geometricweather.db.DatabaseHelper
-import wangdaye.com.geometricweather.location2.LocationHelper
-import wangdaye.com.geometricweather.weather2.WeatherHelper
+import wangdaye.com.geometricweather.location.LocationHelper
+import wangdaye.com.geometricweather.weather.WeatherHelper
 import java.util.*
+import java.util.concurrent.Executors
 import javax.inject.Inject
 import kotlin.collections.ArrayList
 
-@ObsoleteCoroutinesApi
 class MainActivityRepository(private val locationHelper: LocationHelper,
                              private val weatherHelper: WeatherHelper,
                              private val ioDispatcher: CoroutineDispatcher,
@@ -25,9 +25,12 @@ class MainActivityRepository(private val locationHelper: LocationHelper,
             locationHelper,
             weatherHelper,
             ioDispatcher = Dispatchers.IO,
-            exclusiveDispatcher = newSingleThreadContext(
-                    "com.wangdaye.geometricweather.main.repo")
+            exclusiveDispatcher = Executors.newSingleThreadExecutor().asCoroutineDispatcher()
     )
+
+    fun destroy() {
+        exclusiveDispatcher.close()
+    }
 
     suspend fun getLocationList(context: Context, oldList: List<Location>): List<Location> {
         return withContext(exclusiveDispatcher) {
@@ -102,9 +105,5 @@ class MainActivityRepository(private val locationHelper: LocationHelper,
             list.add(it)
         }
         return list
-    }
-
-    fun destroy() {
-        exclusiveDispatcher.close()
     }
 }
