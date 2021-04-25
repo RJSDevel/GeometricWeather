@@ -2,6 +2,7 @@ package wangdaye.com.geometricweather.remoteviews.config
 
 import android.content.Context
 import kotlinx.coroutines.*
+import wangdaye.com.geometricweather.GeometricWeather
 import wangdaye.com.geometricweather.common.basic.models.Location
 import wangdaye.com.geometricweather.weather.WeatherHelper
 
@@ -11,7 +12,8 @@ import wangdaye.com.geometricweather.weather.WeatherHelper
 class AbstractUpdateHelper @JvmOverloads constructor(
         private val weatherHelper: WeatherHelper,
         private val responder: Responder? = null,
-        private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO
+        private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
+        private val applicationScope: CoroutineScope = GeometricWeather.instance!!.applicationScope
 ) {
 
     private var job: Job? = null
@@ -31,7 +33,7 @@ class AbstractUpdateHelper @JvmOverloads constructor(
             location
         }
 
-        job = GlobalScope.launch(Dispatchers.Main) {
+        job = applicationScope.launch(Dispatchers.Main) {
             loc.weather = withContext(ioDispatcher) {
                 weatherHelper.getWeather(context, loc).result ?: location.weather
             }

@@ -81,7 +81,7 @@ abstract class GeoActivity : AppCompatActivity() {
         fitHorizontalSystemBarRootLayout.setRootColor(ContextCompat.getColor(this, R.color.colorRoot))
         fitHorizontalSystemBarRootLayout.setLineColor(ContextCompat.getColor(this, R.color.colorLine))
 
-        GeometricWeather.getInstance().addActivity(this)
+        GeometricWeather.instance.addActivity(this)
         LanguageUtils.setLanguage(this, getInstance(this).getLanguage().locale)
 
         val darkMode = DisplayUtils.isDarkMode(this)
@@ -105,32 +105,32 @@ abstract class GeoActivity : AppCompatActivity() {
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
-        GeometricWeather.getInstance().setTopActivity(this)
+        GeometricWeather.instance.setTopActivity(this)
     }
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
-        GeometricWeather.getInstance().setTopActivity(this)
+        GeometricWeather.instance.setTopActivity(this)
     }
 
     @CallSuper
     override fun onResume() {
         super.onResume()
         foreground = true
-        GeometricWeather.getInstance().setTopActivity(this)
+        GeometricWeather.instance.setTopActivity(this)
     }
 
     @CallSuper
     override fun onPause() {
         super.onPause()
         foreground = false
-        GeometricWeather.getInstance().checkToCleanTopActivity(this)
+        GeometricWeather.instance.checkToCleanTopActivity(this)
     }
 
     @CallSuper
     override fun onDestroy() {
         super.onDestroy()
-        GeometricWeather.getInstance().removeActivity(this)
+        GeometricWeather.instance.removeActivity(this)
     }
 
     open fun getSnackbarContainer() = SnackbarContainer(

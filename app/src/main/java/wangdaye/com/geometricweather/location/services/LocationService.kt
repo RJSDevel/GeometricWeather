@@ -55,14 +55,14 @@ abstract class LocationService {
     }
 
     @RequiresApi(api = Build.VERSION_CODES.O)
-    fun getLocationNotificationChannel(context: Context?): NotificationChannel {
+    fun getLocationNotificationChannel(context: Context): NotificationChannel {
         val channel = NotificationChannel(
                 GeometricWeather.NOTIFICATION_CHANNEL_ID_LOCATION,
                 GeometricWeather.getNotificationChannelName(
                         context, GeometricWeather.NOTIFICATION_CHANNEL_ID_LOCATION),
                 NotificationManager.IMPORTANCE_MIN)
         channel.setShowBadge(false)
-        channel.lightColor = ContextCompat.getColor(context!!, R.color.colorPrimary)
+        channel.lightColor = ContextCompat.getColor(context, R.color.colorPrimary)
         return channel
     }
 

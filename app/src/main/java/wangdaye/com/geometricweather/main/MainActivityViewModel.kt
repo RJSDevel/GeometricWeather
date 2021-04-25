@@ -11,6 +11,7 @@ import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.*
+import wangdaye.com.geometricweather.GeometricWeather
 import wangdaye.com.geometricweather.common.basic.GeoViewModel
 import wangdaye.com.geometricweather.common.basic.models.Location
 import wangdaye.com.geometricweather.main.models.Indicator
@@ -24,12 +25,13 @@ import wangdaye.com.geometricweather.main.utils.StatementManager
 import java.util.*
 import kotlin.collections.ArrayList
 
-class MainActivityViewModel @ViewModelInject constructor(
+class MainActivityViewModel constructor(
         application: Application,
-        @Assisted private val savedStateHandle: SavedStateHandle,
+        private val savedStateHandle: SavedStateHandle,
         private val repository: MainActivityRepository,
         val statementManager: StatementManager,
-        val themeManager: MainThemeManager
+        val themeManager: MainThemeManager,
+        val applicationScope: CoroutineScope
 ) : GeoViewModel(application) {
 
     companion object {
@@ -73,6 +75,22 @@ class MainActivityViewModel @ViewModelInject constructor(
         listResource.value = SelectableLocationListResource(
                 ArrayList(), null, null)
     }
+
+    @ViewModelInject
+    constructor(
+            application: Application,
+            @Assisted savedStateHandle: SavedStateHandle,
+            repository: MainActivityRepository,
+            statementManager: StatementManager,
+            themeManager: MainThemeManager
+    ): this(
+            application,
+            savedStateHandle,
+            repository,
+            statementManager,
+            themeManager,
+            GeometricWeather.instance!!.applicationScope
+    )
 
     override fun onCleared() {
         super.onCleared()
@@ -195,6 +213,51 @@ class MainActivityViewModel @ViewModelInject constructor(
     }
 
     fun updateWeather(triggeredByUser: Boolean, checkPermissions: Boolean) {
+
+        fun callback(location: Location,
+                     locateFailed: Boolean,
+                     succeed: Boolean,
+                     done: Boolean) {
+            if (totalList == null || validList == null) {
+                return
+            }
+
+            val totalList = ArrayList(totalList)
+            for (i in totalList.indices) {
+                if (totalList[i].equals(location)) {
+                    totalList[i] = location
+                    break
+                }
+            }
+            val validList = Location.excludeInvalidResidentLocation(getApplication(), totalList)
+            val validIndex = indexLocation(validList, getCurrentFormattedId())
+            val defaultLocation = location.equals(validList[0])
+            setInnerData(totalList, validList, validIndex)
+
+            val resource = if (!done) {
+                LocationResource.loading(
+                        location, defaultLocation, locateFailed, LocationResource.Event.UPDATE)
+            } else if (succeed) {
+                LocationResource.success(
+                        location, defaultLocation, LocationResource.Event.UPDATE)
+            } else {
+                LocationResource.error(
+                        location, defaultLocation, locateFailed, LocationResource.Event.UPDATE)
+            }
+            val indicatorValue = Indicator(validList.size, validIndex)
+
+            themeManager.update(getApplication(), location)
+
+            currentLocation.value = resource
+            indicator.value = indicatorValue
+            listResource.value = SelectableLocationListResource(
+                    totalList,
+                    formattedId,
+                    null,
+                    SelectableLocationListResource.DataSetChanged()
+            )
+        }
+
         currentLocation.value?.let {
             weatherRequest?.cancel()
 
@@ -235,50 +298,6 @@ class MainActivityViewModel @ViewModelInject constructor(
         }
     }
 
-    private fun callback(location: Location,
-                         locateFailed: Boolean,
-                         succeed: Boolean,
-                         done: Boolean) {
-        if (totalList == null || validList == null) {
-            return
-        }
-
-        val totalList = ArrayList(totalList)
-        for (i in totalList.indices) {
-            if (totalList[i].equals(location)) {
-                totalList[i] = location
-                break
-            }
-        }
-        val validList = Location.excludeInvalidResidentLocation(getApplication(), totalList)
-        val validIndex = indexLocation(validList, getCurrentFormattedId())
-        val defaultLocation = location.equals(validList[0])
-        setInnerData(totalList, validList, validIndex)
-
-        val resource = if (!done) {
-            LocationResource.loading(
-                    location, defaultLocation, locateFailed, LocationResource.Event.UPDATE)
-        } else if (succeed) {
-            LocationResource.success(
-                    location, defaultLocation, LocationResource.Event.UPDATE)
-        } else {
-            LocationResource.error(
-                    location, defaultLocation, locateFailed, LocationResource.Event.UPDATE)
-        }
-        val indicatorValue = Indicator(validList.size, validIndex)
-
-        themeManager.update(getApplication(), location)
-
-        currentLocation.value = resource
-        indicator.value = indicatorValue
-        listResource.value = SelectableLocationListResource(
-                totalList,
-                formattedId,
-                null,
-                SelectableLocationListResource.DataSetChanged()
-        )
-    }
-
     fun requestPermissionsFailed(location: Location) {
         if (totalList == null || validList == null) {
             return
@@ -313,7 +332,7 @@ class MainActivityViewModel @ViewModelInject constructor(
             setLocationResourceWithVerification(current, defaultLocation, LocationResource.Event.UPDATE,
                     indicator, null, SelectableLocationListResource.DataSetChanged())
 
-            GlobalScope.launch {
+            applicationScope.launch {
                 if (position == totalList.size - 1) {
                     repository.writeLocation(getApplication(), location)
                 } else {
@@ -351,7 +370,7 @@ class MainActivityViewModel @ViewModelInject constructor(
             setLocationResourceWithVerification(current, defaultLocation, LocationResource.Event.UPDATE,
                     indicator, null, SelectableLocationListResource.DataSetChanged())
 
-            GlobalScope.launch {
+            applicationScope.launch {
                 repository.writeLocationList(getApplication(), totalList)
             }
         }
@@ -376,7 +395,7 @@ class MainActivityViewModel @ViewModelInject constructor(
             setLocationResourceWithVerification(current, defaultLocation, LocationResource.Event.UPDATE,
                     indicator, location.formattedId, SelectableLocationListResource.DataSetChanged())
 
-            GlobalScope.launch {
+            applicationScope.launch {
                 repository.writeLocation(getApplication(), location)
             }
         }
@@ -397,7 +416,7 @@ class MainActivityViewModel @ViewModelInject constructor(
             setLocationResourceWithVerification(current, defaultLocation, LocationResource.Event.UPDATE,
                     indicator, location.formattedId, SelectableLocationListResource.DataSetChanged())
 
-            GlobalScope.launch {
+            applicationScope.launch {
                 repository.writeLocation(getApplication(), location)
             }
         }
@@ -422,7 +441,7 @@ class MainActivityViewModel @ViewModelInject constructor(
             setLocationResourceWithVerification(current, defaultLocation, LocationResource.Event.UPDATE,
                     indicator, location.formattedId, SelectableLocationListResource.DataSetChanged())
 
-            GlobalScope.launch {
+            applicationScope.launch {
                 repository.deleteLocation(getApplication(), location)
             }
             return location

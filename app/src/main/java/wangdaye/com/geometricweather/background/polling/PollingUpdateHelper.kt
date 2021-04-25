@@ -2,6 +2,7 @@ package wangdaye.com.geometricweather.background.polling
 
 import android.content.Context
 import kotlinx.coroutines.*
+import wangdaye.com.geometricweather.GeometricWeather
 import wangdaye.com.geometricweather.common.basic.models.Location
 import wangdaye.com.geometricweather.common.basic.models.Response
 import wangdaye.com.geometricweather.common.basic.models.weather.Weather
@@ -18,7 +19,8 @@ class PollingUpdateHelper @JvmOverloads constructor(
         private val locationHelper: LocationHelper,
         private val weatherHelper: WeatherHelper,
         private val responder: PollingResponder? = null,
-        private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO
+        private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
+        private val applicationScope: CoroutineScope = GeometricWeather.instance!!.applicationScope
 ) {
 
     private var job: Job? = null
@@ -34,7 +36,7 @@ class PollingUpdateHelper @JvmOverloads constructor(
     fun pollingUpdate() {
         cancel()
 
-        job = GlobalScope.launch {
+        job = applicationScope.launch {
 
             // get location list with weather cache.
             val locationList = withContext(ioDispatcher) {

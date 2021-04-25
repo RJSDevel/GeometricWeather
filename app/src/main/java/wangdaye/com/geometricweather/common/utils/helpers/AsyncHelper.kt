@@ -1,6 +1,7 @@
 package wangdaye.com.geometricweather.common.utils.helpers
 
 import kotlinx.coroutines.*
+import wangdaye.com.geometricweather.GeometricWeather
 import java.util.concurrent.Executor
 
 class AsyncHelper {
@@ -9,35 +10,35 @@ class AsyncHelper {
 
         @JvmStatic
         fun <T> runOnIO(task: Task<T>, callback: Callback<T>) = Controller(
-                GlobalScope.launch(Dispatchers.IO) {
+                GeometricWeather.instance!!.applicationScope.launch(Dispatchers.IO) {
                     task.execute(Emitter(this, callback))
                 }
         )
 
         @JvmStatic
         fun runOnIO(runnable: Runnable) = Controller(
-                GlobalScope.launch(Dispatchers.IO) {
+                GeometricWeather.instance!!.applicationScope.launch(Dispatchers.IO) {
                     runnable.run()
                 }
         )
 
         @JvmStatic
         fun <T> runOnExecutor(task: Task<T>, callback: Callback<T>, executor: Executor) = Controller(
-                GlobalScope.launch(executor.asCoroutineDispatcher()) {
+                GeometricWeather.instance!!.applicationScope.launch(executor.asCoroutineDispatcher()) {
                     task.execute(Emitter(this, callback))
                 }
         )
 
         @JvmStatic
         fun runOnExecutor(runnable: Runnable, executor: Executor) = Controller(
-                GlobalScope.launch(executor.asCoroutineDispatcher()) {
+                GeometricWeather.instance!!.applicationScope.launch(executor.asCoroutineDispatcher()) {
                     runnable.run()
                 }
         )
 
         @JvmStatic
         fun <T> delayRunOnIO(runnable: Runnable, milliSeconds: Long) = Controller(
-                GlobalScope.launch(Dispatchers.IO) {
+                GeometricWeather.instance!!.applicationScope.launch(Dispatchers.IO) {
                     delay(milliSeconds)
                     runnable.run()
                 }
@@ -45,7 +46,7 @@ class AsyncHelper {
 
         @JvmStatic
         fun delayRunOnUI(runnable: Runnable, milliSeconds: Long) = Controller(
-                GlobalScope.launch(Dispatchers.Main) {
+                GeometricWeather.instance!!.applicationScope.launch(Dispatchers.Main) {
                     delay(milliSeconds)
                     runnable.run()
                 }
@@ -54,7 +55,7 @@ class AsyncHelper {
         @JvmStatic
         fun intervalRunOnUI(runnable: Runnable,
                             intervalMilliSeconds: Long, initDelayMilliSeconds: Long) = Controller(
-                GlobalScope.launch(Dispatchers.Main) {
+                GeometricWeather.instance!!.applicationScope.launch(Dispatchers.Main) {
 
                     delay(initDelayMilliSeconds)
 

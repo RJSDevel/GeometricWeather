@@ -10,6 +10,7 @@ import cyanogenmod.weatherservice.ServiceRequestResult
 import cyanogenmod.weatherservice.WeatherProviderService
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.*
+import wangdaye.com.geometricweather.GeometricWeather
 import wangdaye.com.geometricweather.common.basic.models.Location
 import wangdaye.com.geometricweather.common.basic.models.weather.WeatherCode
 import wangdaye.com.geometricweather.location.LocationHelper
@@ -89,7 +90,7 @@ class CMWeatherProviderService : WeatherProviderService() {
 
     // control.
 
-    private fun requestUpdate(cityName: String? = null) = GlobalScope.launch {
+    private fun requestUpdate(cityName: String? = null) = GeometricWeather.instance!!.applicationScope.launch {
         val context = this@CMWeatherProviderService
 
         val location = withContext(Dispatchers.IO) {
