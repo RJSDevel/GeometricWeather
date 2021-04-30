@@ -56,6 +56,8 @@
         <item>5 horas</item>
         <item>5.5 horas</item>
         <item>6 horas</item>
+        <item>24 horas</item>
+        <item>Never</item>
     </string-array>
 
     <!-- widget week icon mode. -->

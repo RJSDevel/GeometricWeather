@@ -31,7 +31,7 @@ class MainActivityViewModel constructor(
         private val repository: MainActivityRepository,
         val statementManager: StatementManager,
         val themeManager: MainThemeManager,
-        val applicationScope: CoroutineScope
+        private val applicationScope: CoroutineScope
 ) : GeoViewModel(application) {
 
     companion object {
@@ -89,7 +89,7 @@ class MainActivityViewModel constructor(
             repository,
             statementManager,
             themeManager,
-            GeometricWeather.instance!!.applicationScope
+            GeometricWeather.instance.applicationScope
     )
 
     override fun onCleared() {
@@ -281,13 +281,13 @@ class MainActivityViewModel constructor(
                                 response.result ?: it.data,
                                 locateFailed = response.isFailed(),
                                 succeed = response.isSucceed(),
-                                false
+                                done = false
                         )
                     }
 
                     val response = repository.getWeather(getApplication(), it.data)
                     it.data.weather = response.result
-                    callback(it.data, false, response.isSucceed(), true)
+                    callback(it.data, locateFailed = false, succeed = response.isSucceed(), done = true)
                     return@launch
                 }
 

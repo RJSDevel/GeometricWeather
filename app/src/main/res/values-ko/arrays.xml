@@ -46,6 +46,8 @@
         <item>5시간</item>
         <item>5시간 30분</item>
         <item>6시간</item>
+        <item>24시간</item>
+        <item>Never</item>
     </string-array>
 
     <!-- 위젯 주간 아이콘 모드. -->

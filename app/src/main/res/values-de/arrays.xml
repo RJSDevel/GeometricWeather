@@ -14,6 +14,8 @@
         <item>5 Stunden</item>
         <item>5,5 Stunden</item>
         <item>6 Stunden</item>
+        <item>24 Stunden</item>
+        <item>Never</item>
     </string-array>
 
     <string-array name="clock_font">

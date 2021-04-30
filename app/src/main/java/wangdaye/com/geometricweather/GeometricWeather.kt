@@ -199,8 +199,7 @@ class GeometricWeather : MultiDexApplication(), Configuration.Provider {
 
         BuglyHelper.init(this)
 
-        val processName = getProcessName()
-        if (processName != null && processName == packageName) {
+        if (getProcessName().equals(packageName)) {
             resetDayNightMode()
         }
     }
@@ -243,9 +242,7 @@ class GeometricWeather : MultiDexApplication(), Configuration.Provider {
         }
     }
 
-    override fun getWorkManagerConfiguration(): Configuration {
-        return Configuration.Builder()
-                .setWorkerFactory(workerFactory)
-                .build()
-    }
+    override fun getWorkManagerConfiguration() = Configuration.Builder()
+            .setWorkerFactory(workerFactory)
+            .build()
 }

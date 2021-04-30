@@ -2,7 +2,7 @@ package wangdaye.com.geometricweather.common.bus
 
 import android.os.Handler
 import android.os.Looper
-import java.util.HashMap
+import java.util.*
 
 class DataBus private constructor() {
 

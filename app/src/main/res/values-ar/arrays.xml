@@ -37,6 +37,8 @@
         <item>كل خمس ساعات</item>
         <item>كل خمس ساعات ونصف</item>
         <item>كل ست ساعات</item>
+        <item>24 hours</item>
+        <item>Never</item>
     </string-array>
 
     <!-- notification style. -->

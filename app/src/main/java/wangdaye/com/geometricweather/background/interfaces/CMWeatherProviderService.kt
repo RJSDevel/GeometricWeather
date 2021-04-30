@@ -90,7 +90,7 @@ class CMWeatherProviderService : WeatherProviderService() {
 
     // control.
 
-    private fun requestUpdate(cityName: String? = null) = GeometricWeather.instance!!.applicationScope.launch {
+    private fun requestUpdate(cityName: String? = null) = GeometricWeather.instance.applicationScope.launch {
         val context = this@CMWeatherProviderService
 
         val location = withContext(Dispatchers.IO) {

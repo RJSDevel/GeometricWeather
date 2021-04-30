@@ -49,6 +49,8 @@
         <item>5時間</item>
         <item>5.5時間</item>
         <item>6時間</item>
+        <item>24時間</item>
+        <item>Never</item>
     </string-array>
 
     <!-- widget week icon mode. -->

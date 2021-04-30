@@ -137,6 +137,8 @@
         <item>5 hours</item>
         <item>5.5 hours</item>
         <item>6 hours</item>
+        <item>24 hours</item>
+        <item>Never</item>
     </string-array>
     <string-array name="automatic_refresh_rate_values">
         <item>0:30</item>
@@ -151,6 +153,8 @@
         <item>5:00</item>
         <item>5:30</item>
         <item>6:00</item>
+        <item>24:00</item>
+        <item>never</item>
     </string-array>
 
     <!-- widget week icon mode. -->

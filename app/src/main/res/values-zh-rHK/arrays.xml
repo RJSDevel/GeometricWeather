@@ -53,6 +53,8 @@
         <item>5小時</item>
         <item>5.5小時</item>
         <item>6小時</item>
+        <item>24小時</item>
+        <item>從不</item>
     </string-array>
 
     <!-- widget week icon mode. -->

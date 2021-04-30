@@ -13,7 +13,7 @@ class AbstractUpdateHelper @JvmOverloads constructor(
         private val weatherHelper: WeatherHelper,
         private val responder: Responder? = null,
         private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
-        private val applicationScope: CoroutineScope = GeometricWeather.instance!!.applicationScope
+        private val applicationScope: CoroutineScope = GeometricWeather.instance.applicationScope
 ) {
 
     private var job: Job? = null

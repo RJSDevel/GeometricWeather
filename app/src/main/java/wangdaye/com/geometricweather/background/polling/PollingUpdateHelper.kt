@@ -20,7 +20,7 @@ class PollingUpdateHelper @JvmOverloads constructor(
         private val weatherHelper: WeatherHelper,
         private val responder: PollingResponder? = null,
         private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
-        private val applicationScope: CoroutineScope = GeometricWeather.instance!!.applicationScope
+        private val applicationScope: CoroutineScope = GeometricWeather.instance.applicationScope
 ) {
 
     private var job: Job? = null
@@ -88,9 +88,6 @@ class PollingUpdateHelper @JvmOverloads constructor(
         val weatherCache = location.weather
         if (weatherCache != null && weatherCache.isValid(0.25f)) {
             return Response.success(location)
-        }
-        location.weather?.let {
-
         }
 
         // locate.

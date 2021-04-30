@@ -16,8 +16,7 @@ import kotlin.collections.ArrayList
  */
 class WeatherHelper @Inject constructor(private val serviceSet: WeatherServiceSet) {
 
-    suspend fun getWeather(context: Context,
-                           location: Location): Response<Weather?> = coroutineScope {
+    suspend fun getWeather(context: Context, location: Location): Response<Weather?> = coroutineScope {
         try {
             if (!location.isUsable) {
                 return@coroutineScope Response.failure(null)

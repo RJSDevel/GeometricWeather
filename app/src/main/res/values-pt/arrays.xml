@@ -37,6 +37,8 @@
         <item>05:00</item>
         <item>05:30</item>
         <item>06:00</item>
+        <item>24:00</item>
+        <item>Never</item>
     </string-array>
 
     <!-- notification text color. -->

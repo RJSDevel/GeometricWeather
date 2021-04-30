@@ -46,6 +46,8 @@
         <item>5 часов</item>
         <item>5.5 часов</item>
         <item>6 часов</item>
+        <item>24 часов</item>
+        <item>Never</item>
     </string-array>
 
     <!-- widget week icon mode. -->
